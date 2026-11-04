@@ -2,14 +2,13 @@ name: Refresh guide
 
 on:
   schedule:
-    - cron: '30 18 * * *' # 00:30 Asia/Dhaka, just after the guide window rolls to a new day
+    - cron: '13 4 * * *' # 04:13 UTC
   workflow_dispatch:
   push:
     branches: [main]
     paths:
       - 'work/**'
-      - 'scripts/refresh_fav_epg.sh'
-      - 'scripts/build_fav_epg.py'
+      - 'scripts/fetch_epg.py'
       - '.github/workflows/refresh-guide.yml'
 
 permissions:
@@ -31,7 +30,7 @@ jobs:
 
       # A failed download or build fails the run, so the last published guide stays up.
       - name: Build guide
-        run: bash scripts/refresh_fav_epg.sh
+        run: python3 -I scripts/fetch_epg.py
 
       - name: Publish guide
         run: |
