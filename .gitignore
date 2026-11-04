@@ -1,0 +1,7 @@
+CLAUDE.md
+HANDOFF.md
+.claude/
+out/
+epg_*/
+__pycache__/
+.DS_Store

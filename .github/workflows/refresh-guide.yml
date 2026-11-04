@@ -1,0 +1,50 @@
+name: Refresh guide
+
+on:
+  schedule:
+    - cron: '30 18 * * *' # 00:30 Asia/Dhaka, just after the guide window rolls to a new day
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - 'work/**'
+      - 'scripts/refresh_fav_epg.sh'
+      - 'scripts/build_fav_epg.py'
+      - '.github/workflows/refresh-guide.yml'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: refresh-guide
+  cancel-in-progress: false
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      TZ: Asia/Dhaka # the build's "today" is local time
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v4
+
+      # A failed download or build fails the run, so the last published guide stays up.
+      - name: Build guide
+        run: bash scripts/refresh_fav_epg.sh
+
+      - name: Publish guide
+        run: |
+          gh release view guide >/dev/null 2>&1 \
+            || gh release create guide --title "Latest guide" --notes "Rebuilt daily." --latest
+          gh release upload guide out/premium_nvision_epg.xml.gz --clobber
+
+      # GitHub disables schedules after 60 days without repository activity.
+      - name: Keep the schedule active
+        run: |
+          if [ $(( $(date +%s) - $(git log -1 --format=%ct) )) -gt $(( 30 * 86400 )) ]; then
+            git config user.name 'github-actions[bot]'
+            git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+            git commit --allow-empty -m 'chore: keep scheduled guide refresh active'
+            git push
+          fi
